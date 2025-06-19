@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import CollageWithPreview from "../components/Collage";
 
@@ -17,11 +17,21 @@ const Booth: React.FC = () => {
   const [isFlashing, setIsFlashing] = useState(false);
   const [numPhotos, setNumPhotos] = useState(1);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [finalCollage, setFinalCollage] = useState<string | null>(null);
+
+  useEffect(() => {
+  if (photos.length === numPhotos && numPhotos > 1) {
+    generateCollage();
+  }
+}, [photos]);
+
+  
 
   const startCapture = () => {
     if (isCapturing) return;
     setPhotos([]);
     setIsCapturing(true);
+    setFinalCollage(null);
     capturePhotoSequence(0);
   };
 
@@ -73,6 +83,42 @@ const Booth: React.FC = () => {
     });
   }
 
+  async function generateCollage() {
+    const loadedImages = await Promise.all(
+      photos.map(
+        (src) =>
+          new Promise<HTMLImageElement>((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = src;
+          })
+      )
+    );
+
+    const cols = 2;
+    const rows = Math.ceil(loadedImages.length / cols);
+    const imgWidth = loadedImages[0].width;
+    const imgHeight = loadedImages[0].height;
+    const gap = 20;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = cols * imgWidth + (cols - 3) * gap;
+    canvas.height = rows * imgHeight + (rows - 3) * gap;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    loadedImages.forEach((img, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = col * (imgWidth + gap);
+      const y = row * (imgHeight + gap);
+      ctx.drawImage(img, x, y, imgWidth, imgHeight);
+    });
+
+    setFinalCollage(canvas.toDataURL());
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center py-12 px-6 font-sans">
       <h1 className="text-4xl font-bold text-neutral-900 mb-8">📸 Photo Booth</h1>
@@ -99,11 +145,11 @@ const Booth: React.FC = () => {
           ref={webcamRef}
           screenshotFormat="image/jpeg"
           videoConstraints={videoConstraints}
-          className="w-[320px] sm:w-[480px] md:w-[640px] aspect-video object-cover transform scale-x-[-1] mx-auto  "
+          className="rounded shadow-lg transform scale-x-[-1] h-80"
         />
 
         {countdown && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 text-white text-6xl font-bold">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-6xl font-bold">
             {countdown}
           </div>
         )}
@@ -119,7 +165,13 @@ const Booth: React.FC = () => {
         {isCapturing ? "Capturing..." : "Start Capture"}
       </button>
 
-      {photos.length > 0 && (
+      {finalCollage && (
+        <div className="mt-10 w-full flex justify-center">
+          <img src={finalCollage} alt="Collage" className="rounded-lg border max-w-full h-auto" />
+        </div>
+      )}
+
+      {photos.length > 0 && numPhotos === 1 && (
         <div className="mt-10 w-full max-w-4xl grid grid-cols-2 md:grid-cols-4 gap-4">
           <CollageWithPreview images={photos} />
         </div>
