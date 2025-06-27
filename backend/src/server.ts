@@ -20,6 +20,13 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
+import galleryRoutes from "./routes/galleryRoutes"
+app.use('/api/gallery', galleryRoutes);
+
+import profilePicRoute from "./routes/profilepicRoute"
+app.use('/api/user', profilePicRoute);
+
+
 app.listen(process.env.PORT || 5000, () => {
     console.log(`Server is running on port ${process.env.PORT || 5000}`);
     });
