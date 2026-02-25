@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import User from "../models/User";
+import GalleryImage from "../models/GalleryImage";
 
+
+import mongoose from "mongoose";
 export const updateUsername = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -54,3 +57,23 @@ export const updateProfilePic = async (req: AuthRequest, res: Response): Promise
   }
 };
 
+
+
+export const getStats = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    // Aggregation: Group by date and count
+    const stats = await GalleryImage.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    res.json(stats); // Returns [{ _id: "2024-05-01", count: 4 }, ...]
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching heatmap stats" });
+  }
+};

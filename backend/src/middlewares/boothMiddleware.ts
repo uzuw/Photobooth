@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 
-export const validateBoothPhotos = (req: Request, res: Response, next: NextFunction) => {
+export const validateBoothPhotos = (req: Request, res: Response, next: NextFunction) :any => {
   const { photos, sessionId } = req.body;
 
   if (!sessionId || typeof sessionId !== "string") {
